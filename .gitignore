@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
 
 # Environment
 .env
@@ -11,6 +15,8 @@ dist/
 build/
 .next/
 out/
+staticfiles/
+media/
 
 # Logs
 *.log
@@ -28,6 +34,9 @@ Thumbs.db
 # Database
 *.sqlite
 *.sqlite3
+db.sqlite3
 
 # Coverage
 coverage/
+.coverage
+htmlcov/

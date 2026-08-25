@@ -1,8 +1,6 @@
 # Database Plan
 
-Recommended database: PostgreSQL.
-
-Recommended ORM: Prisma.
+The current implementation uses Django ORM models. SQLite is configured for local development, and PostgreSQL is recommended for deployment.
 
 ## Entity Relationships
 
@@ -10,75 +8,71 @@ Recommended ORM: Prisma.
 - One service can have many counters.
 - One service can have many tokens.
 - One counter can serve many tokens.
+- One staff user can be assigned to many counters.
 - One token can have many queue events.
-- One staff user can be assigned to one or more counters, depending on project scope.
 
-## Tables
+## Models
 
-### users
+### accounts.User
 
-- `id`
-- `name`
+Extends Django `AbstractUser`.
+
+Fields:
+
+- `username`
 - `email`
-- `passwordHash`
+- `password`
+- `first_name`
+- `last_name`
 - `role`
-- `createdAt`
-- `updatedAt`
 
-### services
-
-- `id`
-- `name`
-- `description`
-- `isActive`
-- `createdAt`
-- `updatedAt`
-
-### counters
-
-- `id`
-- `name`
-- `serviceId`
-- `staffId`
-- `status`
-- `createdAt`
-- `updatedAt`
-
-### tokens
-
-- `id`
-- `tokenNumber`
-- `userId`
-- `serviceId`
-- `counterId`
-- `status`
-- `createdAt`
-- `calledAt`
-- `completedAt`
-
-### queue_events
-
-- `id`
-- `tokenId`
-- `action`
-- `performedBy`
-- `timestamp`
-
-## Enums
-
-### Role
+Roles:
 
 - `USER`
 - `STAFF`
 - `ADMIN`
 
-### CounterStatus
+### queues.Service
+
+Fields:
+
+- `name`
+- `description`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+### queues.Counter
+
+Fields:
+
+- `name`
+- `service`
+- `staff`
+- `status`
+- `created_at`
+- `updated_at`
+
+Statuses:
 
 - `OPEN`
 - `CLOSED`
 - `PAUSED`
 
-### TokenStatus
+### queues.Token
+
+Fields:
+
+- `token_number`
+- `user`
+- `service`
+- `counter`
+- `status`
+- `created_at`
+- `called_at`
+- `completed_at`
+
+Statuses:
 
 - `WAITING`
 - `SERVING`
@@ -86,16 +80,37 @@ Recommended ORM: Prisma.
 - `SKIPPED`
 - `CANCELLED`
 
+### queues.QueueEvent
+
+Fields:
+
+- `token`
+- `action`
+- `performed_by`
+- `timestamp`
+
+Actions:
+
+- `CREATED`
+- `CALLED`
+- `COMPLETED`
+- `SKIPPED`
+- `CANCELLED`
+
 ## Statistics
 
-Average waiting time can be calculated from:
+Average waiting time:
 
 ```text
-calledAt - createdAt
+called_at - created_at
 ```
 
-Average service time can be calculated from:
+Average service time:
 
 ```text
-completedAt - calledAt
+completed_at - called_at
 ```
+
+## Production Recommendation
+
+Use PostgreSQL in production. Update environment variables and install a PostgreSQL driver such as `psycopg`.

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard | Smart Queue{% endblock %}
+
+{% block content %}
+<section class="dashboard-head">
+  <div>
+    <h1>User Dashboard</h1>
+    <p class="muted">Track your virtual token without standing in line.</p>
+  </div>
+  <a class="button" href="{% url 'take_token' %}">Take Token</a>
+</section>
+
+<section class="grid">
+  <article class="panel highlight">
+    <h2>Active Token</h2>
+    {% if active_token %}
+      <p class="token-number">{{ active_token.token_number }}</p>
+      <p>{{ active_token.service.name }} · {{ active_token.get_status_display }}</p>
+      {% if queue_position %}
+        <p>Queue position: {{ queue_position }}</p>
+      {% endif %}
+    {% else %}
+      <p class="empty">You do not have an active token.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Available Services</h2>
+    {% if services %}
+      <ul class="clean-list">
+        {% for service in services %}
+          <li>{{ service.name }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">No active services are available.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel">
+  <h2>Recent Tokens</h2>
+  {% if recent_tokens %}
+    <div class="responsive-table">
+      <table>
+        <thead><tr><th>Token</th><th>Service</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>
+          {% for token in recent_tokens %}
+            <tr>
+              <td>{{ token.token_number }}</td>
+              <td>{{ token.service.name }}</td>
+              <td>{{ token.get_status_display }}</td>
+              <td>{{ token.created_at|date:"M d, H:i" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">Your token history will appear here.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard | Smart Queue{% endblock %}
+
+{% block content %}
+<section class="dashboard-head">
+  <div>
+    <h1>Staff Dashboard</h1>
+    {% if counter %}
+      <p class="muted">{{ counter.name }} · {{ counter.service.name }}</p>
+    {% else %}
+      <p class="muted">No open counter assigned.</p>
+    {% endif %}
+  </div>
+  <form action="{% url 'call_next' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" {% if not counter %}disabled{% endif %}>Call Next</button>
+  </form>
+</section>
+
+<section class="grid">
+  <article class="panel highlight">
+    <h2>Currently Serving</h2>
+    {% if current_token %}
+      <p class="token-number">{{ current_token.token_number }}</p>
+      <p>{{ current_token.service.name }}</p>
+      <div class="actions">
+        <a class="button" href="{% url 'change_token_status' current_token.id 'complete' %}">Complete</a>
+        <a class="button secondary" href="{% url 'change_token_status' current_token.id 'skip' %}">Skip</a>
+      </div>
+    {% else %}
+      <p class="empty">No token is currently being served.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Waiting Tokens</h2>
+    {% if waiting_tokens %}
+      <ul class="clean-list">
+        {% for token in waiting_tokens %}
+          <li>{{ token.token_number }} · {{ token.created_at|date:"H:i" }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">No one is waiting for this service.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

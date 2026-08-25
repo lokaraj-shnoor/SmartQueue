@@ -1,55 +1,62 @@
 # Roadmap
 
-## Phase 1: Foundation
+## Phase 1: Django Foundation
 
-- Initialize frontend and backend projects
-- Configure environment variables
-- Connect database
-- Add linting and formatting
-- Add base layout and routing
+- Django project and apps
+- Custom user model with roles
+- Template layout
+- Static CSS
+- Local SQLite database
 
-## Phase 2: Authentication
+## Phase 2: Authentication and Access
 
 - Register
 - Login
 - Logout
-- Current user endpoint
-- JWT middleware
-- Protected routes
-- Role-based route guards
+- Protected views
+- Role-based redirects and guards
 
-## Phase 3: Queue Core
+## Phase 3: Queue Workflow
 
-- Services CRUD
-- Counters CRUD
-- Token generation
-- Token status updates
+- Services model
+- Counters model
+- Tokens model
+- Queue events model
+- User token generation
+- Staff call-next workflow
+- Complete, skip, and cancel token actions
+
+## Phase 4: Dashboards
+
 - User dashboard
 - Staff dashboard
-
-## Phase 4: Real-Time Updates
-
-- Socket.IO server setup
-- Socket.IO client setup
-- Queue rooms by service or counter
-- Live token display
-- Real-time dashboard updates
-
-## Phase 5: Admin and Reports
-
 - Admin dashboard
-- Staff assignment
-- Queue open/close controls
-- Queue history
-- Search and filters
+- Public/live queue display
+- Empty states and feedback messages
+
+## Phase 5: Search and Reporting
+
+- Token number search
+- User search
+- Service filter
+- Status filter
+- Date filter
 - Average waiting-time statistics
 
-## Phase 6: Polish and Deployment
+## Phase 6: Real-Time Updates
 
-- Loading states
-- Empty states
-- Error states
-- Mobile and tablet responsive testing
-- README setup instructions
-- Seed demo users
-- Deploy frontend, backend, and database
+- Django Channels setup
+- Websocket route
+- Queue update broadcasts
+- Live display refresh on updates
+- Redis channel layer for production
+
+## Phase 7: Deployment
+
+- PostgreSQL database
+- ASGI server using Daphne
+- Redis for Channels
+- Static file handling
+- `DEBUG=False`
+- Production `SECRET_KEY`
+- Live URL

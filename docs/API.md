@@ -1,66 +1,52 @@
-# API Plan
+# Django Routes and API Plan
 
-Base path: `/api`
+This version is a Django server-rendered application with regular routes and templates. JSON API endpoints can be added later with Django REST Framework if the project needs a separate frontend or mobile app.
 
-## Authentication
+## Current Routes
 
-| Method | Endpoint | Role | Description |
+### Authentication
+
+| Method | URL | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | Public | Create a user account |
-| POST | `/auth/login` | Public | Log in and receive an auth token |
-| POST | `/auth/logout` | Authenticated | Log out |
-| GET | `/auth/me` | Authenticated | Get current user profile |
+| GET, POST | `/accounts/register/` | Public | Create a new `USER` account |
+| GET, POST | `/accounts/login/` | Public | Log in |
+| POST | `/accounts/logout/` | Authenticated | Log out |
 
-## Services
+### Dashboards
 
-| Method | Endpoint | Role | Description |
+| Method | URL | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/services` | Authenticated | List active services |
-| POST | `/services` | ADMIN | Create a service |
-| PATCH | `/services/:id` | ADMIN | Update a service |
-| DELETE | `/services/:id` | ADMIN | Disable or delete a service |
+| GET | `/` | Authenticated | Role-aware dashboard redirect/render |
+| GET | `/staff/` | STAFF, ADMIN | Staff queue workflow |
+| GET | `/manage/` | ADMIN | Admin overview |
 
-## Counters
+### Queue
 
-| Method | Endpoint | Role | Description |
+| Method | URL | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/counters` | STAFF, ADMIN | List counters |
-| POST | `/counters` | ADMIN | Create a counter |
-| PATCH | `/counters/:id` | ADMIN | Update a counter |
-| DELETE | `/counters/:id` | ADMIN | Disable or delete a counter |
+| GET, POST | `/queue/take-token/` | USER | Select service and generate token |
+| GET | `/queue/live/` | Authenticated | Live queue display |
+| GET | `/queue/history/` | STAFF, ADMIN | Searchable and filterable history |
+| POST | `/queue/staff/call-next/` | STAFF, ADMIN | Call next waiting token |
+| GET | `/queue/staff/token/<id>/<action>/` | STAFF, ADMIN | Complete, skip, or cancel token |
 
-## Tokens
+### Admin
 
-| Method | Endpoint | Role | Description |
+| Method | URL | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/tokens` | USER | Generate a queue token |
-| GET | `/tokens/my` | USER | List current user's tokens |
-| GET | `/tokens/live` | Authenticated | Get live queue state |
-| PATCH | `/tokens/:id/call` | STAFF, ADMIN | Call a waiting token |
-| PATCH | `/tokens/:id/complete` | STAFF, ADMIN | Complete a token |
-| PATCH | `/tokens/:id/skip` | STAFF, ADMIN | Skip a token |
-| PATCH | `/tokens/:id/cancel` | USER, STAFF, ADMIN | Cancel a token |
+| GET, POST | `/admin/` | Django staff/superuser | Manage users, services, counters, tokens, and events |
 
-## Statistics
+## Websocket
 
-| Method | Endpoint | Role | Description |
-| --- | --- | --- | --- |
-| GET | `/stats/overview` | ADMIN | Dashboard overview stats |
-| GET | `/stats/wait-times` | STAFF, ADMIN | Average waiting-time stats |
-| GET | `/stats/history` | STAFF, ADMIN | Queue history with filters |
+Endpoint:
+
+```text
+/ws/queue/
+```
 
 ## Real-Time Events
 
-Socket.IO namespace: `/queue`
-
-### Client Emits
-
-| Event | Sent By | Description |
-| --- | --- | --- |
-| `join_queue_room` | Authenticated users | Subscribe to service/counter updates |
-| `leave_queue_room` | Authenticated users | Unsubscribe from updates |
-
-### Server Emits
+The server broadcasts queue updates through Django Channels.
 
 | Event | Description |
 | --- | --- |
@@ -68,6 +54,45 @@ Socket.IO namespace: `/queue`
 | `token_called` | Staff called a token |
 | `token_completed` | Staff completed a token |
 | `token_skipped` | Staff skipped a token |
-| `token_cancelled` | A token was cancelled |
-| `queue_updated` | Queue order or counts changed |
-| `counter_status_changed` | Counter status changed |
+| `token_cancelled` | Token was cancelled |
+
+## Future JSON API
+
+Suggested Django REST Framework endpoints:
+
+### Auth
+
+- `POST /api/auth/register/`
+- `POST /api/auth/login/`
+- `POST /api/auth/logout/`
+- `GET /api/auth/me/`
+
+### Services
+
+- `GET /api/services/`
+- `POST /api/services/`
+- `PATCH /api/services/<id>/`
+- `DELETE /api/services/<id>/`
+
+### Counters
+
+- `GET /api/counters/`
+- `POST /api/counters/`
+- `PATCH /api/counters/<id>/`
+- `DELETE /api/counters/<id>/`
+
+### Tokens
+
+- `POST /api/tokens/`
+- `GET /api/tokens/my/`
+- `GET /api/tokens/live/`
+- `PATCH /api/tokens/<id>/call/`
+- `PATCH /api/tokens/<id>/complete/`
+- `PATCH /api/tokens/<id>/skip/`
+- `PATCH /api/tokens/<id>/cancel/`
+
+### Statistics
+
+- `GET /api/stats/overview/`
+- `GET /api/stats/wait-times/`
+- `GET /api/stats/history/`
