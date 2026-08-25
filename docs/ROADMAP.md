@@ -1,62 +1,43 @@
 # Roadmap
 
-## Phase 1: Django Foundation
+## Done Today
 
-- Django project and apps
-- Custom user model with roles
-- Template layout
-- Static CSS
-- Local SQLite database
+- Created Django project structure
+- Created app folders
+- Added route files
+- Added placeholder views
+- Added planned route documentation
 
-## Phase 2: Authentication and Access
+## Next Phase: Authentication
 
 - Register
 - Login
 - Logout
-- Protected views
-- Role-based redirects and guards
+- Protected routes
 
-## Phase 3: Queue Workflow
+## Next Phase: Roles
 
-- Services model
-- Counters model
-- Tokens model
-- Queue events model
-- User token generation
-- Staff call-next workflow
-- Complete, skip, and cancel token actions
+- Add `USER`
+- Add `STAFF`
+- Add `ADMIN`
+- Add route guards
 
-## Phase 4: Dashboards
+## Next Phase: Queue Models
+
+- Services
+- Counters
+- Tokens
+- Queue events
+
+## Next Phase: Dashboards
 
 - User dashboard
 - Staff dashboard
 - Admin dashboard
-- Public/live queue display
-- Empty states and feedback messages
+- Live queue display
 
-## Phase 5: Search and Reporting
+## Next Phase: Search and Real-Time
 
-- Token number search
-- User search
-- Service filter
-- Status filter
-- Date filter
-- Average waiting-time statistics
-
-## Phase 6: Real-Time Updates
-
-- Django Channels setup
-- Websocket route
-- Queue update broadcasts
-- Live display refresh on updates
-- Redis channel layer for production
-
-## Phase 7: Deployment
-
-- PostgreSQL database
-- ASGI server using Daphne
-- Redis for Channels
-- Static file handling
-- `DEBUG=False`
-- Production `SECRET_KEY`
-- Live URL
+- Search token history
+- Filter by service/status/date
+- Add Django Channels or WebSocket updates

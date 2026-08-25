@@ -1,98 +1,35 @@
-# Django Routes and API Plan
+# Route Plan
 
-This version is a Django server-rendered application with regular routes and templates. JSON API endpoints can be added later with Django REST Framework if the project needs a separate frontend or mobile app.
+This file lists the Django routes currently created in the scaffold.
 
-## Current Routes
+## Authentication Routes
 
-### Authentication
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/accounts/register/` | `accounts.views.register` | Register route placeholder |
+| `/accounts/login/` | `accounts.views.login_view` | Login route placeholder |
+| `/accounts/logout/` | `accounts.views.logout_view` | Logout route placeholder |
 
-| Method | URL | Role | Description |
-| --- | --- | --- | --- |
-| GET, POST | `/accounts/register/` | Public | Create a new `USER` account |
-| GET, POST | `/accounts/login/` | Public | Log in |
-| POST | `/accounts/logout/` | Authenticated | Log out |
+## Dashboard Routes
 
-### Dashboards
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/` | `dashboard.views.dashboard` | User dashboard route placeholder |
+| `/staff/` | `dashboard.views.staff_dashboard` | Staff dashboard route placeholder |
+| `/manage/` | `dashboard.views.admin_dashboard` | Admin dashboard route placeholder |
 
-| Method | URL | Role | Description |
-| --- | --- | --- | --- |
-| GET | `/` | Authenticated | Role-aware dashboard redirect/render |
-| GET | `/staff/` | STAFF, ADMIN | Staff queue workflow |
-| GET | `/manage/` | ADMIN | Admin overview |
+## Queue Routes
 
-### Queue
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/queue/take-token/` | `queues.views.take_token` | Token generation route placeholder |
+| `/queue/live/` | `queues.views.live_queue` | Live queue route placeholder |
+| `/queue/history/` | `queues.views.queue_history` | Queue history route placeholder |
+| `/queue/staff/call-next/` | `queues.views.call_next` | Staff call-next route placeholder |
+| `/queue/staff/token/<id>/<action>/` | `queues.views.change_token_status` | Token action route placeholder |
 
-| Method | URL | Role | Description |
-| --- | --- | --- | --- |
-| GET, POST | `/queue/take-token/` | USER | Select service and generate token |
-| GET | `/queue/live/` | Authenticated | Live queue display |
-| GET | `/queue/history/` | STAFF, ADMIN | Searchable and filterable history |
-| POST | `/queue/staff/call-next/` | STAFF, ADMIN | Call next waiting token |
-| GET | `/queue/staff/token/<id>/<action>/` | STAFF, ADMIN | Complete, skip, or cancel token |
+## Admin Route
 
-### Admin
-
-| Method | URL | Role | Description |
-| --- | --- | --- | --- |
-| GET, POST | `/admin/` | Django staff/superuser | Manage users, services, counters, tokens, and events |
-
-## Websocket
-
-Endpoint:
-
-```text
-/ws/queue/
-```
-
-## Real-Time Events
-
-The server broadcasts queue updates through Django Channels.
-
-| Event | Description |
+| URL | Purpose |
 | --- | --- |
-| `token_created` | A user generated a token |
-| `token_called` | Staff called a token |
-| `token_completed` | Staff completed a token |
-| `token_skipped` | Staff skipped a token |
-| `token_cancelled` | Token was cancelled |
-
-## Future JSON API
-
-Suggested Django REST Framework endpoints:
-
-### Auth
-
-- `POST /api/auth/register/`
-- `POST /api/auth/login/`
-- `POST /api/auth/logout/`
-- `GET /api/auth/me/`
-
-### Services
-
-- `GET /api/services/`
-- `POST /api/services/`
-- `PATCH /api/services/<id>/`
-- `DELETE /api/services/<id>/`
-
-### Counters
-
-- `GET /api/counters/`
-- `POST /api/counters/`
-- `PATCH /api/counters/<id>/`
-- `DELETE /api/counters/<id>/`
-
-### Tokens
-
-- `POST /api/tokens/`
-- `GET /api/tokens/my/`
-- `GET /api/tokens/live/`
-- `PATCH /api/tokens/<id>/call/`
-- `PATCH /api/tokens/<id>/complete/`
-- `PATCH /api/tokens/<id>/skip/`
-- `PATCH /api/tokens/<id>/cancel/`
-
-### Statistics
-
-- `GET /api/stats/overview/`
-- `GET /api/stats/wait-times/`
-- `GET /api/stats/history/`
+| `/admin/` | Django admin |

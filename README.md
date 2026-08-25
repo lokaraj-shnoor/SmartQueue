@@ -1,47 +1,69 @@
 # Smart Queue Management System
 
-A Django and Python based digital queue management system for college offices, clinics, labs, help desks, and similar service points. Users take a virtual token instead of physically waiting in line, staff call the next token, and admins manage services, counters, users, and queue status.
+Django and Python scaffold for a Smart Queue Management System.
 
-## Features
-
-- Register, login, logout, and protected routes
-- Role-based access for `USER`, `STAFF`, and `ADMIN`
-- User dashboard with active token, queue position, available services, and recent history
-- Staff dashboard to call the next person, complete tokens, and skip tokens
-- Admin dashboard with queue totals and links to Django Admin controls
-- Service and counter database relationships
-- Digital queue token generation
-- Live queue display with Django Channels websocket updates
-- Queue history with token search, service filter, status filter, and date filter
-- Average waiting-time calculation
-- Loading-safe, empty-state, and message-based feedback patterns
-- Responsive UI for desktop, tablet, and mobile
+For today, this repository contains only the project folders and route wiring. Feature implementation, models, authentication logic, dashboards, and real-time queue updates can be added in later phases.
 
 ## Tech Stack
 
 - Python 3.11+
 - Django 5
-- Django Channels
-- Daphne ASGI server
 - SQLite for local development
-- PostgreSQL recommended for deployment
-- HTML templates and responsive CSS
 
-## Project Structure
+## Current Scope
+
+- Django project setup
+- App folders created
+- Route files created
+- Placeholder views added so routes can be opened
+- Documentation for planned pages and routes
+
+## Folder Structure
 
 ```text
 smart-queue-management-system/
 ├── accounts/
+│   ├── urls.py
+│   └── views.py
 ├── config/
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 ├── dashboard/
+│   ├── urls.py
+│   └── views.py
 ├── queues/
+│   ├── urls.py
+│   └── views.py
 ├── static/
+│   └── css/
 ├── templates/
+│   ├── accounts/
+│   ├── dashboard/
+│   └── queues/
 ├── docs/
 ├── manage.py
 ├── requirements.txt
 └── README.md
 ```
+
+## Routes Created
+
+| URL | Purpose |
+| --- | --- |
+| `/` | User dashboard route |
+| `/staff/` | Staff dashboard route |
+| `/manage/` | Admin dashboard route |
+| `/accounts/register/` | Register route |
+| `/accounts/login/` | Login route |
+| `/accounts/logout/` | Logout route |
+| `/queue/take-token/` | Take token route |
+| `/queue/live/` | Live queue route |
+| `/queue/history/` | Queue history route |
+| `/queue/staff/call-next/` | Call next route |
+| `/queue/staff/token/<id>/<action>/` | Token action route |
+| `/admin/` | Django admin route |
 
 ## Local Setup
 
@@ -58,25 +80,6 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create database tables:
-
-```powershell
-python manage.py makemigrations
-python manage.py migrate
-```
-
-Create an admin user:
-
-```powershell
-python manage.py createsuperuser
-```
-
-Or create demo users, services, and counters:
-
-```powershell
-python manage.py seed_demo
-```
-
 Run the development server:
 
 ```powershell
@@ -89,108 +92,26 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-## Roles
-
-### USER
-
-- Register and log in
-- View services
-- Take a virtual token
-- Track active token status
-- View queue position
-- View recent token history
-
-### STAFF
-
-- Access staff dashboard
-- View assigned open counter
-- Call next waiting token
-- Complete or skip current token
-- View waiting queue
-
-### ADMIN
-
-- Access admin dashboard
-- Manage users, roles, services, counters, tokens, and queue events through Django Admin
-- View queue history and statistics
-- Call and manage tokens when needed
-
-## Demo Credentials
-
-After running `python manage.py seed_demo`:
-
-| Role | Username | Password |
-| --- | --- | --- |
-| Admin | `admin` | `Admin@123` |
-| Staff | `staff` | `Staff@123` |
-| User | `user` | `User@123` |
-
-## Main URLs
-
-| URL | Purpose |
-| --- | --- |
-| `/` | Role-aware dashboard |
-| `/accounts/register/` | Register |
-| `/accounts/login/` | Login |
-| `/accounts/logout/` | Logout |
-| `/queue/take-token/` | Generate user token |
-| `/queue/live/` | Live queue display |
-| `/staff/` | Staff dashboard |
-| `/manage/` | Admin dashboard |
-| `/queue/history/` | Searchable queue history |
-| `/admin/` | Django Admin |
-
-## Real-Time Updates
-
-The app uses Django Channels.
-
-Websocket endpoint:
-
-```text
-/ws/queue/
-```
-
-Broadcast events:
-
-- `token_created`
-- `token_called`
-- `token_completed`
-- `token_skipped`
-- `token_cancelled`
-
-The current development setup uses `InMemoryChannelLayer`. For production, replace it with Redis.
-
 ## GitHub Repository
-
-Remote repository:
 
 [https://github.com/lokaraj-shnoor/smart-queue-management-system](https://github.com/lokaraj-shnoor/smart-queue-management-system)
 
 Push local changes:
 
 ```powershell
-git remote add origin https://github.com/lokaraj-shnoor/smart-queue-management-system.git
 git push -u origin main
 ```
 
-If `origin` already exists:
+## Next Phases
 
-```powershell
-git remote set-url origin https://github.com/lokaraj-shnoor/smart-queue-management-system.git
-git push -u origin main
-```
-
-## Deployment Notes
-
-For deployment, use:
-
-- PostgreSQL database
-- Redis channel layer
-- Daphne or another ASGI-compatible server
-- `DEBUG=False`
-- Strong `SECRET_KEY`
-- Proper `ALLOWED_HOSTS`
-- Static file hosting via WhiteNoise, S3, or platform static handling
+- Add authentication
+- Add roles: `USER`, `STAFF`, `ADMIN`
+- Add queue models
+- Add dashboards
+- Add token generation
+- Add search and filtering
+- Add live updates using WebSockets or Django Channels
+- Add responsive UI
 
 ## License
 
