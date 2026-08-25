@@ -71,6 +71,12 @@ Create an admin user:
 python manage.py createsuperuser
 ```
 
+Or create demo users, services, and counters:
+
+```powershell
+python manage.py seed_demo
+```
+
 Run the development server:
 
 ```powershell
@@ -108,6 +114,16 @@ http://127.0.0.1:8000/
 - Manage users, roles, services, counters, tokens, and queue events through Django Admin
 - View queue history and statistics
 - Call and manage tokens when needed
+
+## Demo Credentials
+
+After running `python manage.py seed_demo`:
+
+| Role | Username | Password |
+| --- | --- | --- |
+| Admin | `admin` | `Admin@123` |
+| Staff | `staff` | `Staff@123` |
+| User | `user` | `User@123` |
 
 ## Main URLs
 
