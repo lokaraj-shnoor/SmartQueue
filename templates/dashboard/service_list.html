@@ -1,0 +1,92 @@
+{% extends "dashboard/_shell.html" %}
+
+{% block title %}Services — Smart Queue{% endblock %}
+
+{% block page %}
+<div class="page__head">
+  <h1 class="page__title">Services</h1>
+  <p class="page__count"><b>{{ services|length }}</b> service{{ services|length|pluralize }} · prefix opens every token number</p>
+</div>
+
+<div class="stack">
+  <section>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Prefix</th>
+            <th>Service</th>
+            <th>Waiting</th>
+            <th>Counters</th>
+            <th>Per person</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for service in services %}
+            <tr>
+              <td><span class="chip-code">{{ service.code }}</span></td>
+              <td>
+                {{ service.name }}
+                {% if service.description %}<span class="table__row-sub">{{ service.description }}</span>{% endif %}
+              </td>
+              <td>{{ service.waiting }}</td>
+              <td>{{ service.counters_total }}</td>
+              <td>{{ service.avg_service_minutes }} min</td>
+              <td>
+                {% if service.is_active %}
+                  <span class="stamp stamp--open">Taking tokens</span>
+                {% else %}
+                  <span class="stamp stamp--paused">Paused</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="table__actions">
+                  <a class="btn btn--ghost btn--small" href="{% url 'dashboard:service_edit' service.pk %}">Edit</a>
+                  <form method="post" action="{% url 'dashboard:service_toggle' service.pk %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--ghost btn--small">{% if service.is_active %}Pause{% else %}Resume{% endif %}</button>
+                  </form>
+                  <form method="post" action="{% url 'dashboard:service_delete' service.pk %}" class="inline-form"
+                        data-confirm="Remove {{ service.name }}? This cannot be undone.">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--danger btn--small">Remove</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty">
+                  <p class="empty__title">No services yet</p>
+                  <p>Add the first one below — fee payment, lab sample, transcript pickup.</p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="newthing">
+    <div class="newthing__head">
+      <h2 class="newthing__title">Add a service</h2>
+      <p class="newthing__hint">Numbering restarts every morning, per service.</p>
+    </div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="newthing__grid">
+        {% for field in form %}
+          {% include "partials/field.html" with field=field %}
+        {% endfor %}
+      </div>
+      <div class="newthing__actions">
+        <button type="submit" class="btn btn--seal">Add service</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

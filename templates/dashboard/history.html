@@ -1,0 +1,162 @@
+{% extends "dashboard/_shell.html" %}
+
+{% block title %}History and wait times — Smart Queue{% endblock %}
+
+{% block page %}
+<div class="page__head">
+  <h1 class="page__title">{% if is_today %}Today{% else %}{{ day|date:"j F Y" }}{% endif %}</h1>
+  <nav class="daynav" aria-label="Choose a day">
+    <a class="daynav__step" href="?day={{ previous_day|date:'Y-m-d' }}" rel="prev">&larr; {{ previous_day|date:"j M" }}</a>
+    {% if not is_today %}
+      <a class="daynav__step" href="{% url 'dashboard:history' %}">Today</a>
+      <a class="daynav__step" href="?day={{ next_day|date:'Y-m-d' }}" rel="next">{{ next_day|date:"j M" }} &rarr;</a>
+    {% endif %}
+  </nav>
+</div>
+
+<section class="section">
+  <ol class="figures">
+    <li class="figure figure--lead">
+      <span class="figure__k">Average wait</span>
+      <span class="figure__v">{% if summary.avg_wait_minutes is not None %}{{ summary.avg_wait_minutes }}<span class="figure__unit">min</span>{% else %}&mdash;{% endif %}</span>
+      <span class="figure__note">
+        {% if summary.longest_wait_minutes %}Longest {{ summary.longest_wait_minutes }} min{% else %}Nobody has waited yet{% endif %}
+      </span>
+    </li>
+    <li class="figure">
+      <span class="figure__k">At the counter</span>
+      <span class="figure__v">{% if summary.avg_service_minutes is not None %}{{ summary.avg_service_minutes }}<span class="figure__unit">min</span>{% else %}&mdash;{% endif %}</span>
+      <span class="figure__note">Average time served</span>
+    </li>
+    <li class="figure">
+      <span class="figure__k">Tokens issued</span>
+      <span class="figure__v">{{ summary.issued }}</span>
+      <span class="figure__note">{{ summary.waiting }} still waiting</span>
+    </li>
+    <li class="figure">
+      <span class="figure__k">Served</span>
+      <span class="figure__v">{{ summary.served }}</span>
+      <span class="figure__note">{{ summary.skipped }} skipped &middot; {{ summary.cancelled }} cancelled</span>
+    </li>
+  </ol>
+</section>
+
+<div class="split split--report">
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title">By service</h2>
+      <span class="eyebrow">Waits are measured to the call</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Service</th><th>Issued</th><th>Served</th><th>Avg wait</th><th>Avg served</th></tr>
+        </thead>
+        <tbody>
+          {% for service in services %}
+            <tr>
+              <td><span class="chip-code">{{ service.code }}</span> {{ service.name }}</td>
+              <td>{{ service.issued }}</td>
+              <td>{{ service.served }}</td>
+              <td>{% if service.avg_wait_minutes is not None %}{{ service.avg_wait_minutes }} min{% else %}&mdash;{% endif %}</td>
+              <td>{% if service.avg_service_minutes is not None %}{{ service.avg_service_minutes }} min{% else %}&mdash;{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="table__muted">No tokens were issued on this day.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section__head section--gap">
+      <h2 class="section__title">By counter</h2>
+      <span class="eyebrow">Who worked the desk</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Counter</th><th>Served</th><th>Skipped</th><th>Avg served</th></tr>
+        </thead>
+        <tbody>
+          {% for counter in counters %}
+            <tr>
+              <td>
+                <span class="chip-code">{{ counter.code }}</span> {{ counter.name }}
+                <span class="table__row-sub">{% if counter.assigned_staff %}{{ counter.assigned_staff.display_name }}{% else %}Nobody assigned{% endif %}</span>
+              </td>
+              <td>{{ counter.served }}</td>
+              <td>{{ counter.skipped }}</td>
+              <td>{% if counter.avg_service_minutes is not None %}{{ counter.avg_service_minutes }} min{% else %}&mdash;{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="table__muted">No counter handled a token on this day.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside>
+    <section class="section">
+      <div class="section__head">
+        <h2 class="section__title">The week</h2>
+      </div>
+      <ol class="bars">
+        {% for row in trend %}
+          <li class="bars__row{% if row.day == day %} is-current{% endif %}">
+            <span class="bars__day">{{ row.day|date:"D j" }}</span>
+            <span class="bars__track">
+              <span class="bars__fill" style="width: {{ row.share }}%"></span>
+            </span>
+            <span class="bars__n">{{ row.issued }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="section section--gap">
+      <div class="section__head">
+        <h2 class="section__title">Busiest hours</h2>
+      </div>
+      <ol class="bars">
+        {% for row in busiest %}
+          <li class="bars__row">
+            <span class="bars__day">{{ row.hour|stringformat:"02d" }}:00</span>
+            <span class="bars__track">
+              <span class="bars__fill" style="width: {{ row.share }}%"></span>
+            </span>
+            <span class="bars__n">{{ row.count }}</span>
+          </li>
+        {% empty %}
+          <li class="ledger__empty">Nothing was issued on this day.</li>
+        {% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+
+<section class="section section--gap">
+  <div class="section__head">
+    <h2 class="section__title">What happened</h2>
+    <span class="eyebrow">Newest first &middot; last {{ events|length }} entries</span>
+  </div>
+  <ol class="trail">
+    {% for event in events %}
+      <li class="trail__row">
+        <span class="trail__time">{{ event.at|date:"H:i" }}</span>
+        <span class="trail__what">
+          <span class="chip-code">{{ event.entry.token.code }}</span>
+          {{ event.get_event_display }}
+        </span>
+        <span class="trail__who">
+          {% if event.counter %}<span class="tag">{{ event.counter.code }}</span>{% endif %}
+          {% if event.actor %}{{ event.actor.display_name }}{% else %}System{% endif %}
+        </span>
+        <span class="trail__note">{{ event.note }}</span>
+      </li>
+    {% empty %}
+      <li class="ledger__empty">Nothing was recorded on this day.</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

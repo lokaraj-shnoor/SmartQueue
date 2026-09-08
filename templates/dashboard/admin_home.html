@@ -1,0 +1,132 @@
+{% extends "dashboard/_shell.html" %}
+
+{% block title %}Overview — Smart Queue{% endblock %}
+
+{% block page %}
+<div class="page__head">
+  <h1 class="page__title">Today at the counters</h1>
+  <a class="btn" href="{% url 'dashboard:counter_list' %}">Add a counter</a>
+</div>
+
+<section class="section">
+  <div class="section__head">
+    <h2 class="section__title">Counters</h2>
+    <a href="{% url 'dashboard:counter_list' %}">Manage counters</a>
+  </div>
+
+  <div class="board-cols" aria-hidden="true">
+    <span class="board-cols__cell">Code</span>
+    <span class="board-cols__cell">Counter</span>
+    <span class="board-cols__cell">Now serving</span>
+    <span class="board-cols__cell">Set status</span>
+  </div>
+
+  <ol class="board board--console board--headed">
+    {% for counter in counters %}
+      <li class="board-row board-row--{{ counter.status }}">
+        <span class="board-row__code">{{ counter.code }}</span>
+        <span class="board-row__name">
+          {{ counter.name }}
+          <span class="board-row__meta">
+            <span>{% if counter.assigned_staff %}{{ counter.assigned_staff.display_name }}{% else %}Nobody on duty{% endif %}</span>
+            {% for service in counter.services.all %}
+              <span class="tag">{{ service.code }}</span>
+            {% empty %}
+              <span class="tag">No services</span>
+            {% endfor %}
+          </span>
+        </span>
+        <span class="board-row__num">
+          {% if counter.status == "closed" %}
+            <span class="slate slate--off">Off</span>
+          {% else %}
+            <span class="slate{% if counter.status == 'paused' %} slate--standby{% endif %}">
+              {% if counter.now_serving %}{{ counter.now_serving.token.code }}{% else %}-----{% endif %}
+            </span>
+          {% endif %}
+        </span>
+        {# no status chip here: the pressed button below already says it #}
+        <span class="board-row__actions">
+          {% for value, label in counter_statuses %}
+            <form method="post" action="{% url 'dashboard:counter_status' counter.pk %}" class="inline-form">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="{{ value }}">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="status-btn" aria-pressed="{% if counter.status == value %}true{% else %}false{% endif %}">{{ label }}</button>
+            </form>
+          {% endfor %}
+        </span>
+      </li>
+    {% empty %}
+      <li class="board__empty">
+        <p class="board__empty-title">No counters yet</p>
+        <p>Add the first desk or window so tokens have somewhere to go.</p>
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+
+<div class="split">
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title">Services</h2>
+      <a href="{% url 'dashboard:service_list' %}">Manage services</a>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Service</th>
+            <th>Waiting</th>
+            <th>Counters</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for service in services %}
+            <tr>
+              <td class="table__code">{{ service.code }}</td>
+              <td>{{ service.name }}</td>
+              <td>{{ service.waiting }}</td>
+              <td>{{ service.counters_total }}</td>
+              <td>
+                {% if service.is_active %}
+                  <span class="stamp stamp--open">Taking tokens</span>
+                {% else %}
+                  <span class="stamp stamp--paused">Paused</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="table__muted">No services yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title">Queue status</h2>
+    </div>
+    <div class="panel">
+      <p class="panel__lead">
+        Turning off token issuing leaves existing tokens in place — nobody new
+        joins a queue until you turn it back on.
+      </p>
+      <form method="post" action="{% url 'dashboard:queue_settings' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        {% for field in settings_form %}
+          {% include "partials/field.html" with field=field %}
+        {% endfor %}
+        <button type="submit" class="btn">Save queue status</button>
+      </form>
+      {% if settings_row.updated_by %}
+        <p class="field__help">Last changed by {{ settings_row.updated_by.display_name }} on {{ settings_row.updated_at|date:"j M, H:i" }}.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

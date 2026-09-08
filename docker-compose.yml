@@ -1,0 +1,34 @@
+# Postgres for local development.
+#
+#   docker compose up -d db
+#
+# Then in .env:
+#   USE_SQLITE=0
+#   DATABASE_URL=postgres://queue_admin:queue_admin@localhost:5432/smartqueue
+#
+# The data lives in a named volume, so stopping the container keeps the
+# database. `docker compose down -v` is what throws it away.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: smartqueue-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smartqueue
+      POSTGRES_USER: queue_admin
+      POSTGRES_PASSWORD: queue_admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - smartqueue-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Django's migrate will fail against a server that is still starting up,
+      # so anything depending on this waits for a real readiness answer.
+      test: ["CMD-SHELL", "pg_isready -U queue_admin -d smartqueue"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  smartqueue-pgdata:

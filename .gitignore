@@ -1,29 +1,19 @@
-# Dependencies
-node_modules/
-.venv/
-venv/
+# Python
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+
+# Django
+db.sqlite3
+*.sqlite3
+staticfiles/
+media/
+*.log
 
 # Environment
 .env
 .env.local
-.env.*.local
-
-# Build output
-dist/
-build/
-.next/
-out/
-staticfiles/
-media/
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
 # OS/editor
 .DS_Store
@@ -31,12 +21,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Database
-*.sqlite
-*.sqlite3
-db.sqlite3
-
-# Coverage
-coverage/
-.coverage
-htmlcov/
+# Tooling and scratch
+.claude/
+static/_preview.html
+*.eml

@@ -1,0 +1,19 @@
+{% with widget=field.field.widget %}
+{% if widget.input_type == "checkbox" and not widget.allow_multiple_selected %}
+  <div class="field{% if wide %} field--wide{% endif %}{% if field.errors %} field--invalid{% endif %}">
+    <label class="field__check">
+      {{ field }}
+      <span>{{ field.label }}</span>
+    </label>
+    {% if field.help_text %}<p class="field__help">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}<ul class="field__errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+{% else %}
+  <div class="field{% if wide %} field--wide{% endif %}{% if widget.allow_multiple_selected %} field--choices{% endif %}{% if field.errors %} field--invalid{% endif %}">
+    <label class="field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<p class="field__help">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}<ul class="field__errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+{% endif %}
+{% endwith %}

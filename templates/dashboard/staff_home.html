@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Your counter — Smart Queue{% endblock %}
+
+{% block content %}
+<div class="shell page-wrap">
+  <div class="page__head">
+    <h1 class="page__title">Your counter, {{ user.display_name }}</h1>
+    <p class="page__count"><b>{{ waiting_total }}</b> waiting &middot; <b>{{ served_today }}</b> served today</p>
+  </div>
+
+  {% if counter %}
+    {% if counters|length > 1 %}
+      <nav class="deskpick" aria-label="Your counters">
+        {% for option in counters %}
+          <a href="?counter={{ option.pk }}" class="deskpick__tab{% if option.pk == counter.pk %} is-current{% endif %}">
+            <span class="chip-code">{{ option.code }}</span> {{ option.name }}
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+
+    <div class="deskview">
+      <aside class="display" aria-label="Your counter display">
+        <div class="display__head">
+          <span class="display__label">
+            {% if current.status == "serving" %}At your counter{% elif current %}Called{% else %}Nothing called{% endif %}
+          </span>
+          {% if counter.status == "open" %}<span class="display__live" aria-hidden="true"></span>{% endif %}
+        </div>
+        <p class="display__num">{% if current %}{{ current.token.code }}{% else %}-----{% endif %}</p>
+        <p class="display__where">{{ counter.code }} &middot; {{ counter.name }}</p>
+        {% if current %}
+          <dl class="display__rows">
+            <div class="display__row display__row--mine">
+              <dt>Holder</dt>
+              <dd>{{ current.token.holder_name }}</dd>
+            </div>
+            <div class="display__row">
+              <dt>Service</dt>
+              <dd>{{ current.token.service.code }}</dd>
+            </div>
+            <div class="display__row">
+              <dt>Waited</dt>
+              <dd>{{ current.waited_seconds }} s</dd>
+            </div>
+          </dl>
+        {% endif %}
+        <p class="display__foot">{{ counter.location|default:"No location set" }}</p>
+      </aside>
+
+      <div>
+        <div class="console">
+          <div class="console__head">
+            <p class="eyebrow">Call desk</p>
+            <span class="console__state">
+              {% if counter.status == "open" %}
+                <span class="stamp stamp--open">Open</span>
+              {% elif counter.status == "paused" %}
+                <span class="stamp stamp--paused">Paused</span>
+              {% else %}
+                <span class="stamp stamp--closed">Closed</span>
+              {% endif %}
+            </span>
+          </div>
+
+          {% if current %}
+            <p class="console__now">
+              <span class="chip-code">{{ current.token.code }}</span>
+              {{ current.token.service.name }} &middot; {{ current.get_status_display|lower }}
+            </p>
+            <div class="console__acts">
+              {% if current.status == "called" %}
+                <form method="post" action="{% url 'dashboard:entry_start' current.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn--seal">They are here</button>
+                </form>
+                <form method="post" action="{% url 'dashboard:entry_recall' current.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn--ghost">Call again</button>
+                </form>
+              {% else %}
+                <form method="post" action="{% url 'dashboard:entry_finish' current.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn--seal">Finished</button>
+                </form>
+              {% endif %}
+              <form method="post" action="{% url 'dashboard:entry_skip' current.pk %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--danger">No show</button>
+              </form>
+            </div>
+          {% else %}
+            <p class="console__now console__now--idle">Your counter is free.</p>
+            <div class="console__acts">
+              <form method="post" action="{% url 'dashboard:call_next' counter.pk %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--seal btn--large"{% if counter.status != "open" or not waiting %} disabled{% endif %}>
+                  Call next
+                </button>
+              </form>
+              {% if counter.status != "open" %}
+                <span class="console__hint">Open your counter to start calling.</span>
+              {% elif not waiting %}
+                <span class="console__hint">Nobody is waiting for your services.</span>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div class="console__shift">
+            <span class="deskview__k">Your desk</span>
+            <span class="console__shift-acts">
+              {% for value, label in counter_statuses %}
+                <form method="post" action="{% url 'dashboard:counter_shift' counter.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="{{ value }}">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="status-btn" aria-pressed="{% if counter.status == value %}true{% else %}false{% endif %}">{{ label }}</button>
+                </form>
+              {% endfor %}
+            </span>
+          </div>
+        </div>
+
+        <ul class="deskview__facts">
+          <li>
+            <span class="deskview__k">Serves</span>
+            <span class="deskview__v">
+              {% for service in counter.services.all %}<span class="tag">{{ service.code }}</span> {% empty %}No services yet{% endfor %}
+            </span>
+          </li>
+          <li>
+            <span class="deskview__k">Waiting</span>
+            <span class="deskview__v">{{ waiting_total }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <section class="section section--gap">
+      <div class="section__head">
+        <h2 class="section__title">Next in line</h2>
+        <span class="eyebrow">Priority first, then order taken</span>
+      </div>
+      <ol class="ledger">
+        {% for item in waiting %}
+          <li class="ledger__row ledger__row--queue">
+            <span class="ledger__code">{{ forloop.counter }}</span>
+            <span class="ledger__name"><span class="chip-code">{{ item.token.code }}</span></span>
+            <span class="ledger__desc">{{ item.token.holder_name }} &middot; {{ item.token.service.name }}</span>
+            <span class="ledger__figure">{{ item.queued_at|time:"H:i" }}</span>
+            <span class="ledger__figure">waited {{ item.queued_at|timesince }}</span>
+            <span class="ledger__take">
+              {% if item.priority %}<span class="stamp stamp--paused">Priority</span>{% endif %}
+            </span>
+          </li>
+        {% empty %}
+          <li class="ledger__empty">Nobody is waiting for the services this counter handles.</li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    {% if skipped %}
+      <section class="section section--gap">
+        <div class="section__head">
+          <h2 class="section__title">Skipped today</h2>
+          <span class="eyebrow">Put someone back if they turn up</span>
+        </div>
+        <ol class="ledger">
+          {% for item in skipped %}
+            <li class="ledger__row ledger__row--queue">
+              <span class="ledger__code">&mdash;</span>
+              <span class="ledger__name"><span class="chip-code">{{ item.token.code }}</span></span>
+              <span class="ledger__desc">{{ item.token.holder_name }} &middot; {{ item.token.service.name }}</span>
+              <span class="ledger__figure">{{ item.finished_at|time:"H:i" }}</span>
+              <span class="ledger__figure">{{ item.note|default:"No note" }}</span>
+              <span class="ledger__take">
+                <form method="post" action="{% url 'dashboard:entry_requeue' item.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn--ghost btn--small">Back in line</button>
+                </form>
+              </span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
+  {% else %}
+    <div class="nothing">
+      <h2 class="nothing__h">No counter assigned to you yet.</h2>
+      <p>
+        An administrator assigns counters from the dashboard. Once yours is
+        set, this page becomes the console you call people forward from.
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

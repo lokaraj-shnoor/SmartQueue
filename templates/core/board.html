@@ -1,0 +1,95 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Now serving — Smart Queue</title>
+  <meta name="description" content="The live counter board: which number each counter is serving right now.">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Hanken+Grotesk:wght@300..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="wall" data-refresh="{{ refresh_seconds }}">
+
+<header class="wall__head">
+  <p class="wall__mark">Smart Queue</p>
+  <p class="wall__now">
+    <span class="wall__clock" data-clock>{% now "H:i" %}</span>
+    <span class="wall__date">{% now "l, j F" %}</span>
+  </p>
+</header>
+
+{% if system_settings.announcement %}
+  <p class="wall__notice">{{ system_settings.announcement }}</p>
+{% endif %}
+
+<main class="wall__main">
+  {% if counters %}
+    <ol class="wall__grid" aria-label="Counters">
+      {% for counter in counters %}
+        <li class="tile{% if not counter.serving_now %} tile--idle{% endif %}{% if counter.status == 'paused' %} tile--paused{% endif %}">
+          <div class="tile__head">
+            <span class="tile__code">{{ counter.code }}</span>
+            <span class="tile__state">
+              {% if counter.status == "paused" %}Paused{% elif counter.serving_now %}Now serving{% else %}Free{% endif %}
+            </span>
+          </div>
+          <p class="tile__num">
+            {% if counter.serving_now %}{{ counter.serving_now.token.code }}{% else %}&mdash;&mdash;&mdash;{% endif %}
+          </p>
+          <p class="tile__where">
+            {{ counter.name }}{% if counter.location %} &middot; {{ counter.location }}{% endif %}
+          </p>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <div class="wall__shut">
+      <p class="wall__shut-h">No counters are open.</p>
+      <p class="wall__shut-p">Numbers appear here as soon as a counter opens.</p>
+    </div>
+  {% endif %}
+
+  <aside class="wall__side">
+    <section class="wall__panel">
+      <h2 class="wall__panel-h">Called just now</h2>
+      <ol class="recent">
+        {% for item in recent %}
+          <li class="recent__row{% if not forloop.first %} recent__row--past{% endif %}">
+            <span class="recent__code">{{ item.token.code }}</span>
+            <span class="recent__at">{% if item.counter %}{{ item.counter.code }}{% else %}&mdash;{% endif %}</span>
+            <span class="recent__time">{{ item.called_at|time:"H:i" }}</span>
+          </li>
+        {% empty %}
+          <li class="recent__none">Nothing called yet today.</li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="wall__panel">
+      <h2 class="wall__panel-h">Waiting &middot; {{ waiting_total }}</h2>
+      <ol class="waitline">
+        {% for service in service_lines %}
+          <li class="waitline__row">
+            <span class="waitline__code">{{ service.code }}</span>
+            <span class="waitline__name">{{ service.name }}</span>
+            <span class="waitline__n">{{ service.waiting }}</span>
+          </li>
+        {% empty %}
+          <li class="recent__none">No services are open.</li>
+        {% endfor %}
+      </ol>
+    </section>
+  </aside>
+</main>
+
+<footer class="wall__foot">
+  <span>{{ open_count }} counter{{ open_count|pluralize }} open &middot; {{ serving_count }} being served</span>
+  <span>Take a token on your phone &middot; watch for your number</span>
+</footer>
+
+<script src="{% static 'js/board.js' %}" defer></script>
+</body>
+</html>

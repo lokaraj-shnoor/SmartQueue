@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.token.code }} — Smart Queue{% endblock %}
+
+{% block content %}
+<div class="shell page-wrap">
+  <div class="page__head">
+    <h1 class="page__title">{{ entry.token.code }}</h1>
+    <p class="page__count">{{ entry.token.service.name }} &middot; taken {{ entry.queued_at|date:"j F, H:i" }}</p>
+  </div>
+
+  <div class="deskview">
+    <aside class="display" aria-label="Token">
+      <div class="display__head">
+        <span class="display__label">{{ entry.get_status_display }}</span>
+        {% if entry.is_open %}<span class="display__live" aria-hidden="true"></span>{% endif %}
+      </div>
+      <p class="display__num">{{ entry.token.code }}</p>
+      <p class="display__where">{{ entry.token.holder_name }}</p>
+      <dl class="display__rows">
+        <div class="display__row display__row--mine">
+          <dt>Ahead of you</dt>
+          <dd>{% if entry.status == "waiting" %}{{ ahead }}{% else %}&mdash;{% endif %}</dd>
+        </div>
+        <div class="display__row">
+          <dt>Rough wait</dt>
+          <dd>{% if entry.status == "waiting" %}{{ eta_minutes }} min{% else %}&mdash;{% endif %}</dd>
+        </div>
+        <div class="display__row">
+          <dt>Counter</dt>
+          <dd>{% if entry.counter %}{{ entry.counter.code }}{% else %}Not assigned{% endif %}</dd>
+        </div>
+      </dl>
+      <p class="display__foot">Issued from {{ entry.token.get_channel_display|lower }}</p>
+    </aside>
+
+    <div>
+      <ul class="deskview__facts">
+        <li><span class="deskview__k">Waited</span><span class="deskview__v">{{ entry.waited_seconds }} s</span></li>
+        <li><span class="deskview__k">Called</span><span class="deskview__v">{% if entry.called_at %}{{ entry.called_at|time:"H:i" }}{% else %}Not yet{% endif %}</span></li>
+        <li><span class="deskview__k">Finished</span><span class="deskview__v">{% if entry.finished_at %}{{ entry.finished_at|time:"H:i" }}{% else %}Not yet{% endif %}</span></li>
+        <li><span class="deskview__k">Served by</span><span class="deskview__v">{% if entry.served_by %}{{ entry.served_by.display_name }}{% else %}&mdash;{% endif %}</span></li>
+      </ul>
+
+      <div class="holder__acts">
+        <a class="btn btn--ghost btn--small" href="{% url 'dashboard:visitor_home' %}">Back to your queue</a>
+        {% if entry.status == "waiting" and entry.token.issued_to_id == user.id %}
+          <form method="post" action="{% url 'dashboard:token_cancel' entry.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--danger btn--small">Give up my place</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <section class="section section--gap">
+    <div class="section__head">
+      <h2 class="section__title">What happened</h2>
+      <span class="eyebrow">Newest first</span>
+    </div>
+    <ol class="trail">
+      {% for event in events %}
+        <li class="trail__row">
+          <span class="trail__time">{{ event.at|date:"j M H:i" }}</span>
+          <span class="trail__what">{{ event.get_event_display }}</span>
+          <span class="trail__who">
+            {% if event.counter %}<span class="tag">{{ event.counter.code }}</span>{% endif %}
+            {% if event.actor %}{{ event.actor.display_name }}{% else %}System{% endif %}
+          </span>
+          <span class="trail__note">{{ event.note }}</span>
+        </li>
+      {% empty %}
+        <li class="ledger__empty">Nothing recorded against this token yet.</li>
+      {% endfor %}
+    </ol>
+  </section>
+</div>
+{% endblock %}

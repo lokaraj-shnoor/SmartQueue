@@ -1,0 +1,62 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Smart Queue{% endblock %}</title>
+  <meta name="description" content="{% block description %}Take a queue token from your phone and watch the counter board instead of standing in line.{% endblock %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Hanken+Grotesk:wght@300..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="shell masthead__inner">
+    <a class="wordmark" href="{% url 'core:landing' %}">
+      <span class="wordmark__tag">Q</span>
+      Smart Queue
+    </a>
+    <nav class="masthead__nav" aria-label="Main">
+      <a href="{% url 'core:board' %}">Live board</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard:home' %}">Dashboard</a>
+        <span class="stamp stamp--quiet">{{ user.initials }} &middot; {{ user.get_role_display }}</span>
+        <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--ghost btn--small">Sign out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'accounts:login' %}">Sign in</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+{% if messages %}
+  <div class="shell flashes">
+    {% for message in messages %}
+      <div class="flash flash--{{ message.tags|default:'info' }}">
+        <span>{{ message }}</span>
+        <button type="button" class="flash__close" data-dismiss aria-label="Dismiss">&times;</button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<main id="main">
+  {% block content %}{% endblock %}
+</main>
+
+{% block footer %}
+  <footer class="shell site-foot">
+    <span>Smart Queue &middot; counter management for offices, clinics and labs</span>
+    <span>{% now "l, j F Y" %}</span>
+  </footer>
+{% endblock %}
+
+<script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

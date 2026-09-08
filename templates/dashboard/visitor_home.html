@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Your queue — Smart Queue{% endblock %}
+
+{% block content %}
+<div class="shell page-wrap">
+  <div class="page__head">
+    <h1 class="page__title">Hello, {{ user.display_name }}</h1>
+    {% if entry %}
+      <p class="page__count">You hold <b>{{ entry.token.code }}</b> for {{ entry.token.service.name }}</p>
+    {% else %}
+      <p class="page__count">Pick a service below and a number is yours</p>
+    {% endif %}
+  </div>
+
+  {% if system_settings and not system_settings.accepting_tokens %}
+    <p class="notice"><strong>Paused</strong> New tokens are not being issued right now.</p>
+  {% endif %}
+
+  <div class="deskview">
+    {% if entry %}
+      <aside class="display" aria-label="Your token">
+        <div class="display__head">
+          <span class="display__label">
+            {% if entry.status == "waiting" %}Your number{% elif entry.status == "called" %}You are being called{% else %}At the counter{% endif %}
+          </span>
+          <span class="display__live" aria-hidden="true"></span>
+        </div>
+        <p class="display__num">{{ entry.token.code }}</p>
+        <p class="display__where">{{ entry.token.service.name }}</p>
+        <dl class="display__rows">
+          <div class="display__row display__row--mine">
+            <dt>Ahead of you</dt>
+            <dd>{{ ahead }}</dd>
+          </div>
+          <div class="display__row">
+            <dt>Rough wait</dt>
+            <dd>{% if eta_minutes %}{{ eta_minutes }} min{% else %}Any moment{% endif %}</dd>
+          </div>
+          <div class="display__row">
+            <dt>Counter</dt>
+            <dd>{% if entry.counter %}{{ entry.counter.code }}{% else %}Not assigned{% endif %}</dd>
+          </div>
+        </dl>
+        <p class="display__foot">Taken {{ entry.queued_at|time:"H:i" }} &middot; {{ entry.get_status_display }}</p>
+      </aside>
+
+      <div>
+        <ul class="deskview__facts">
+          <li>
+            <span class="deskview__k">Now serving</span>
+            <span class="deskview__v">{% if serving_code %}<span class="chip-code">{{ serving_code }}</span>{% else %}Nothing called{% endif %}</span>
+          </li>
+          <li>
+            <span class="deskview__k">Waited so far</span>
+            <span class="deskview__v">{{ entry.queued_at|timesince }}</span>
+          </li>
+          <li>
+            <span class="deskview__k">Service</span>
+            <span class="deskview__v"><span class="tag">{{ entry.token.service.code }}</span></span>
+          </li>
+        </ul>
+
+        <div class="holder__acts">
+          <a class="btn btn--ghost btn--small" href="{% url 'dashboard:token_detail' entry.pk %}">Token history</a>
+          {% if entry.status == "waiting" %}
+            <form method="post" action="{% url 'dashboard:token_cancel' entry.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--danger btn--small">Give up my place</button>
+            </form>
+          {% else %}
+            <span class="stamp stamp--open">Go to the counter</span>
+          {% endif %}
+        </div>
+
+        <p class="soon">
+          <strong>Keep this page open</strong>
+          Reload to see your place move. The counter staff call numbers in the
+          order shown here, priority cases first.
+        </p>
+      </div>
+    {% else %}
+      <aside class="display" aria-label="Live counter display">
+        <div class="display__head">
+          <span class="display__label">{% if serving_code %}Now serving{% else %}Nothing being called{% endif %}</span>
+          {% if serving_code %}<span class="display__live" aria-hidden="true"></span>{% endif %}
+        </div>
+        <p class="display__num">{% if serving_code %}{{ serving_code }}{% else %}-----{% endif %}</p>
+        <p class="display__where">Across every open counter</p>
+      </aside>
+
+      <div class="nothing">
+        <h2 class="nothing__h">You are not in a queue.</h2>
+        <p>
+          Take a token from the list below. Your number, the people ahead of
+          you and a rough wait appear here the moment you do.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+  <section class="section section--gap">
+    <div class="section__head">
+      <h2 class="section__title">Open for tokens</h2>
+      <span class="eyebrow">Numbering restarts each morning</span>
+    </div>
+
+    <ol class="ledger">
+      {% for service in services %}
+        <li class="ledger__row ledger__row--take">
+          <span class="ledger__code">{{ service.code }}</span>
+          <span class="ledger__name">{{ service.name }}</span>
+          <span class="ledger__desc">{{ service.description|default:"Take a token and wait for your number." }}</span>
+          <span class="ledger__figure">{{ service.waiting }} waiting</span>
+          <span class="ledger__figure">~{{ service.avg_service_minutes }} min</span>
+          <span class="ledger__take">
+            {% if service.blocked_reason %}
+              <span class="ledger__blocked" title="{{ service.blocked_reason }}">{{ service.blocked_reason }}</span>
+            {% else %}
+              <form method="post" action="{% url 'dashboard:token_take' service.pk %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--seal btn--small">Take a token</button>
+              </form>
+            {% endif %}
+          </span>
+        </li>
+      {% empty %}
+        <li class="ledger__empty">No services are taking tokens at the moment.</li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  {% if history %}
+    <section class="section section--gap">
+      <div class="section__head">
+        <h2 class="section__title">Earlier tokens</h2>
+        <span class="eyebrow">Your last five</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Token</th><th>Service</th><th>Taken</th><th>Counter</th><th>Outcome</th></tr>
+          </thead>
+          <tbody>
+            {% for past in history %}
+              <tr>
+                <td class="table__code"><a href="{% url 'dashboard:token_detail' past.pk %}">{{ past.token.code }}</a></td>
+                <td>{{ past.token.service.name }}</td>
+                <td class="table__muted">{{ past.queued_at|date:"j M, H:i" }}</td>
+                <td class="table__muted">{% if past.counter %}{{ past.counter.code }}{% else %}&mdash;{% endif %}</td>
+                <td>{{ past.get_status_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

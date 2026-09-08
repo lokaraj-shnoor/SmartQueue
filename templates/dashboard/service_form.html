@@ -1,0 +1,25 @@
+{% extends "dashboard/_shell.html" %}
+
+{% block title %}Edit {{ service.name }} — Smart Queue{% endblock %}
+
+{% block page %}
+<div class="page__head">
+  <h1 class="page__title">{{ service.name }}</h1>
+  <p class="eyebrow">Service {{ service.code }} · tokens already issued keep their number</p>
+</div>
+
+<div class="panel">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="form-grid">
+      {% for field in form %}
+        {% include "partials/field.html" with field=field %}
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">Save changes</button>
+      <a class="btn btn--ghost" href="{% url 'dashboard:service_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

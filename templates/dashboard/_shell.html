@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% with name=request.resolver_match.url_name %}
+<div class="shell app">
+  <aside class="rail">
+    <div class="rail__group">
+      <p class="eyebrow">Administration</p>
+      <ul class="rail__nav">
+        <li><a href="{% url 'dashboard:admin_home' %}" class="{% if name == 'admin_home' %}is-current{% endif %}">Overview</a></li>
+        <li><a href="{% url 'dashboard:service_list' %}" class="{% if 'service' in name %}is-current{% endif %}">Services</a></li>
+        <li><a href="{% url 'dashboard:counter_list' %}" class="{% if 'counter' in name %}is-current{% endif %}">Counters</a></li>
+        <li><a href="{% url 'dashboard:team_list' %}" class="{% if 'team' in name %}is-current{% endif %}">Staff accounts</a></li>
+        <li><a href="{% url 'core:board' %}">Live board</a></li>
+        <li><a href="{% url 'dashboard:history' %}" class="{% if name == 'history' %}is-current{% endif %}">History &amp; wait times</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <div>
+    {% block page %}{% endblock %}
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

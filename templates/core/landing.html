@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Queue — go sit down, we'll call you{% endblock %}
+{% block description %}Take a queue token from your phone and watch your place in line, instead of standing in one.{% endblock %}
+
+{% block content %}
+<section class="shell hero">
+  <div class="hero__copy">
+    <h1 class="hero__title">Go sit down. We'll call you.</h1>
+    <p class="hero__lead">
+      Take a number from your phone, watch your place in the queue, and come
+      back when it's your turn.
+    </p>
+    <div class="hero__cta">
+      {% if user.is_authenticated %}
+        <a class="btn btn--seal btn--large" href="{% url 'dashboard:home' %}">Go to your dashboard</a>
+      {% else %}
+        <a class="btn btn--seal btn--large" href="{% url 'accounts:signup' %}">Take a token</a>
+        <p class="hero__aside">Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside class="display" aria-label="Live token display">
+    <div class="display__head">
+      <span class="display__label">{% if serving_counter %}Now serving{% else %}Next token{% endif %}</span>
+      <span class="display__live" aria-hidden="true"></span>
+    </div>
+
+    <p class="display__num">
+      {% if serving_counter %}
+        {{ serving_counter.now_serving.token.code }}
+      {% elif feature_service %}
+        {{ feature_service.code }}-{{ next_number|stringformat:"03d" }}
+      {% else %}
+        A-001
+      {% endif %}
+    </p>
+
+    <p class="display__where">
+      {% if serving_counter %}
+        {{ serving_counter.name }} · {{ serving_counter.now_serving.token.service.name }}
+      {% elif feature_service %}
+        {{ feature_service.name }}
+      {% else %}
+        No counters open yet
+      {% endif %}
+    </p>
+
+    <dl class="display__rows">
+      <div class="display__row display__row--mine">
+        <dt>Your token</dt>
+        <dd>{% if feature_service %}{{ feature_service.code }}-{{ next_number|stringformat:"03d" }}{% else %}A-001{% endif %}</dd>
+      </div>
+      <div class="display__row">
+        <dt>Ahead of you</dt>
+        <dd>{{ waiting_total }}</dd>
+      </div>
+      <div class="display__row">
+        <dt>About</dt>
+        <dd>{% if est_wait_minutes %}{{ est_wait_minutes }} min{% else %}No wait{% endif %}</dd>
+      </div>
+    </dl>
+
+    <p class="display__foot">
+      {{ open_counter_count }} counter{{ open_counter_count|pluralize }} open
+    </p>
+  </aside>
+</section>
+
+<section class="closer">
+  <div class="shell closer__inner">
+    <div>
+      <h2 class="closer__h">Take a number. Go do something else.</h2>
+      <p class="closer__note">Works in any browser. Nothing for visitors to install.</p>
+    </div>
+    {% if user.is_authenticated %}
+      <a class="btn btn--large" href="{% url 'dashboard:home' %}">Go to your dashboard</a>
+    {% else %}
+      <a class="btn btn--large" href="{% url 'accounts:signup' %}">Take a token</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block footer %}
+  <footer class="shell site-foot">
+    <p>Queue tokens for college offices, clinics, labs and help desks.</p>
+    <span>{% now "Y" %}</span>
+  </footer>
+{% endblock %}
