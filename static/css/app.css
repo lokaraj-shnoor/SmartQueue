@@ -2669,3 +2669,19 @@ h3 {
   color: var(--seal);
   text-underline-offset: 3px;
 }
+
+/* On a phone a heading and its aside are fighting for the same line: the
+   title wraps to two while the eyebrow keeps half the width. Stack them. */
+@media (max-width: 560px) {
+  .section__head,
+  .page__head,
+  .newthing__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-1);
+  }
+
+  .daynav {
+    flex-wrap: wrap;
+  }
+}
