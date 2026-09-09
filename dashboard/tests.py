@@ -4,11 +4,15 @@ administrator's control over services, counters and queue status.
 """
 import base64
 import json
+import os
 import time
 from datetime import timedelta
+from io import StringIO
 from unittest import mock
 
 from django.core import mail
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -839,3 +843,63 @@ class OneAccountPerEmailTests(TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
+
+
+class CreateAdminCommandTests(TestCase):
+    """The shell-free way to make the first administrator on a host."""
+
+    def _run(self, **env):
+        out = StringIO()
+        with mock.patch.dict(os.environ, env, clear=False):
+            call_command("createadmin", stdout=out)
+        return out.getvalue()
+
+    def test_it_creates_an_administrator(self):
+        self._run(
+            DJANGO_ADMIN_USERNAME="asha",
+            DJANGO_ADMIN_PASSWORD="counter-queue-42",
+            DJANGO_ADMIN_EMAIL="asha@example.edu",
+        )
+        user = User.objects.get(username="asha")
+        self.assertEqual(user.role, Role.ADMIN)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password("counter-queue-42"))
+
+    def test_running_it_again_leaves_the_account_alone(self):
+        env = {
+            "DJANGO_ADMIN_USERNAME": "asha",
+            "DJANGO_ADMIN_PASSWORD": "counter-queue-42",
+        }
+        self._run(**env)
+        # A deploy hook runs on every push, so a second run must not reset the
+        # password of an account whose owner has since changed it.
+        User.objects.filter(username="asha").update(first_name="Asha")
+        user = User.objects.get(username="asha")
+        user.set_password("something-they-chose-77")
+        user.save()
+
+        output = self._run(**env)
+        user.refresh_from_db()
+        self.assertIn("already exists", output)
+        self.assertTrue(user.check_password("something-they-chose-77"))
+        self.assertEqual(User.objects.filter(username="asha").count(), 1)
+
+    def test_it_does_nothing_without_the_variables(self):
+        output = self._run(DJANGO_ADMIN_USERNAME="", DJANGO_ADMIN_PASSWORD="")
+        self.assertIn("skipping", output)
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_a_weak_password_is_refused(self):
+        with self.assertRaises(CommandError):
+            self._run(DJANGO_ADMIN_USERNAME="asha", DJANGO_ADMIN_PASSWORD="12345")
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_a_duplicate_email_is_refused(self):
+        User.objects.create_user(username="riya", email="shared@example.edu", password="x")
+        with self.assertRaises(CommandError):
+            self._run(
+                DJANGO_ADMIN_USERNAME="asha",
+                DJANGO_ADMIN_PASSWORD="counter-queue-42",
+                DJANGO_ADMIN_EMAIL="shared@example.edu",
+            )
+        self.assertFalse(User.objects.filter(username="asha").exists())

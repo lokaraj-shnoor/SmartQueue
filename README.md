@@ -112,6 +112,13 @@ python manage.py test
 5. **Register the production callback** on the Google OAuth client, and set the
    mail credentials, or sign-in and password resets will work locally and
    nowhere else.
+6. **Create the first administrator.** On a host with a shell, run
+   `python manage.py createsuperuser`. Where there is no shell — Render's free
+   tier, for instance — set `DJANGO_ADMIN_USERNAME`, `DJANGO_ADMIN_PASSWORD`
+   and optionally `DJANGO_ADMIN_EMAIL`, and add `python manage.py createadmin`
+   to the build command. It creates the account once, leaves an existing one
+   alone, and does nothing when the variables are unset, so it is safe on every
+   deploy. Remove the password variable once you have signed in.
 
 ## Configuration
 

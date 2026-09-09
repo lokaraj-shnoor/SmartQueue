@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Smart Queue">
+  <!-- The masthead mark, shrunk: the lit panel with the bone Q on it. Drawn
+       as geometry rather than type so it stays legible at 16px, where a
+       serif letterform turns to mud. -->
+  <rect width="32" height="32" rx="6" fill="#141c26"/>
+  <circle cx="16" cy="15" r="7" fill="none" stroke="#f4f1e8" stroke-width="3.5"/>
+  <path d="M18.5 19.5 L23 25" stroke="#f4f1e8" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
