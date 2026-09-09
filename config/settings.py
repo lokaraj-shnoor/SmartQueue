@@ -21,10 +21,41 @@ def env_bool(name, default=False):
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
+def clean_host(raw):
+    """A bare hostname from whatever someone pasted.
+
+    ALLOWED_HOSTS matches the Host header, which carries no scheme, no path and
+    no port. Pasting a full URL in is the usual reason a deployment answers
+    every request with DisallowedHost, so take the hostname out of one.
+    """
+    host = raw.strip().strip('"').strip("'")
+    if "//" in host:
+        host = host.split("//", 1)[1]
+    host = host.split("/", 1)[0]
+    # Strip a port, but leave IPv6 literals like [::1] alone.
+    if host.count(":") == 1:
+        host = host.split(":", 1)[0]
+    return host.strip().lower()
+
+
 ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
+    cleaned
+    for raw in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if (cleaned := clean_host(raw))
+]
+
+# Render (and Heroku-likes) publish the hostname they assigned. Trusting it
+# means a rename, a new service or a preview environment works without anyone
+# remembering to update an environment variable by hand.
+for platform_host in ("RENDER_EXTERNAL_HOSTNAME", "WEBSITE_HOSTNAME"):
+    assigned = clean_host(os.environ.get(platform_host, ""))
+    if assigned and assigned not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(assigned)
+
+# Django checks the Referer on secure POSTs against this list, so every host
+# the site answers on needs to be here or forms fail once TLS is in front.
+CSRF_TRUSTED_ORIGINS = [
+    "https://" + host for host in ALLOWED_HOSTS if host not in {"localhost", "127.0.0.1"}
 ]
 
 INSTALLED_APPS = [

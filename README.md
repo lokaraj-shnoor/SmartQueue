@@ -78,8 +78,10 @@ python manage.py test
 ## Deploying
 
 1. **Environment** — set `DJANGO_DEBUG=0`, a long random `DJANGO_SECRET_KEY`,
-   `DJANGO_ALLOWED_HOSTS` for the real hostname, and `DATABASE_URL` for the
-   Postgres instance. Managed Postgres wants TLS: keep `?sslmode=require` on
+   `DJANGO_ALLOWED_HOSTS` for the real hostname (bare hostnames, no scheme),
+   and `DATABASE_URL` for the Postgres instance. On Render the assigned
+   `*.onrender.com` hostname is added automatically from
+   `RENDER_EXTERNAL_HOSTNAME`, so that variable only needs a custom domain. Managed Postgres wants TLS: keep `?sslmode=require` on
    the URL, or set `POSTGRES_SSLMODE=require`.
 2. **Migrate and collect static:**
 
