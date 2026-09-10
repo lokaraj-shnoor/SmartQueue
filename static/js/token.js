@@ -20,6 +20,23 @@
   const labelEl = document.querySelector("[data-token-label]");
 
   const supported = "Notification" in window;
+  let worker = null;
+
+  // Chrome refuses `new Notification(...)` from a page and insists the alert
+  // comes from a service worker registration. Register one up front so it is
+  // ready by the time a number is called.
+  async function readyWorker() {
+    if (worker || !("serviceWorker" in navigator)) {
+      return worker;
+    }
+    try {
+      await navigator.serviceWorker.register("/sw.js");
+      worker = await navigator.serviceWorker.ready;
+    } catch (err) {
+      console.warn("Smart Queue: service worker unavailable, falling back.", err);
+    }
+    return worker;
+  }
   let lastStatus = page.dataset.tokenStatus || "";
   let notified = lastStatus === "called" || lastStatus === "serving";
   let stopped = false;
@@ -43,15 +60,48 @@
     askButton.addEventListener("click", async () => {
       // Chrome throws rather than resolving when the call is not from a
       // gesture, and Safari still wants the callback form.
+      let state;
       try {
-        await Notification.requestPermission();
+        state = await Notification.requestPermission();
       } catch (err) {
-        Notification.requestPermission(paintPermission);
+        state = await new Promise((resolve) => Notification.requestPermission(resolve));
       }
       paintPermission();
+      if (state === "granted") {
+        await readyWorker();
+        // Prove the whole path works at the moment permission is given,
+        // rather than leaving someone to discover it failed when it mattered.
+        show("Alerts are on", {
+          body: "We will tell you the moment your number is called.",
+          tag: "smart-queue-ready",
+        });
+      }
     });
   }
   paintPermission();
+  if (supported && Notification.permission === "granted") {
+    readyWorker();
+  }
+
+  // One way in for every alert: the registration when there is one, the page
+  // constructor otherwise, and a loud console line when neither works.
+  async function show(title, options) {
+    if (!supported || Notification.permission !== "granted") {
+      return false;
+    }
+    const registration = await readyWorker();
+    try {
+      if (registration) {
+        await registration.showNotification(title, options);
+        return true;
+      }
+      new Notification(title, options);
+      return true;
+    } catch (err) {
+      console.warn("Smart Queue: could not show the alert.", err);
+      return false;
+    }
+  }
 
   function announce(data) {
     const where = data.counter ? "Counter " + data.counter : "the counter";
@@ -59,18 +109,15 @@
       ? where + " (" + data.counter_name + ") is ready for you."
       : "Please go to " + where + ".";
 
-    if (supported && Notification.permission === "granted") {
-      const note = new Notification(data.code + " — it's your turn", {
-        body,
-        tag: "smart-queue-" + data.entry_id, // one alert per token, not one per poll
-        requireInteraction: true,
-        icon: page.dataset.notifyIcon || undefined,
-      });
-      note.addEventListener("click", () => {
-        window.focus();
-        note.close();
-      });
-    }
+    show(data.code + " - it's your turn", {
+      body,
+      tag: "smart-queue-" + data.entry_id, // one alert per token, not one per poll
+      requireInteraction: true,
+      icon: page.dataset.notifyIcon || undefined,
+      badge: page.dataset.notifyIcon || undefined,
+      vibrate: [200, 100, 200],
+      data: { url: window.location.pathname },
+    });
 
     // The page itself says so too, for anyone who declined notifications or
     // is looking straight at it.
@@ -116,6 +163,7 @@
       }
       paint(await response.json());
     } catch (err) {
+      console.warn("Smart Queue: status check failed.", err);
       // A dropped connection is normal on a phone moving between cells.
       // Stay quiet and try again on the next tick.
     }

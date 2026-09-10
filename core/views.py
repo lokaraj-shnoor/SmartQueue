@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.db.models import Count, Prefetch, Q
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
 
 from queues import services as queue_ops
@@ -83,3 +85,18 @@ def board(request):
             "refresh_seconds": 15,
         },
     )
+
+
+def favicon(request):
+    """Redirect the browser's root favicon request to the collected file.
+
+    Resolved per request rather than when the URLconf is imported: the hashed
+    name comes from the staticfiles manifest, and looking it up at import time
+    means a deployment that has not run collectstatic fails to boot at all
+    instead of merely missing an icon.
+    """
+    try:
+        target = static("favicon.ico")
+    except ValueError:
+        target = settings.STATIC_URL + "favicon.ico"
+    return redirect(target, permanent=True)
