@@ -1006,3 +1006,54 @@ class WaitingCountsTests(TestCase):
         self.client.force_login(admin)
         response = self.client.get(reverse("dashboard:admin_home"))
         self.assertEqual(response.context["waiting_total"], 0)
+
+
+class ResetAdminPasswordTests(TestCase):
+    """Changing a shared password on a host with no shell."""
+
+    def _run(self, **env):
+        out = StringIO()
+        with mock.patch.dict(os.environ, env, clear=False):
+            call_command("createadmin", stdout=out)
+        return out.getvalue()
+
+    def test_the_reset_flag_changes_an_existing_password(self):
+        User.objects.create_user(
+            username="admin", email="admin@smartq.com", password="the-old-one-42", role=Role.ADMIN
+        )
+        output = self._run(
+            DJANGO_ADMIN_USERNAME="admin",
+            DJANGO_ADMIN_EMAIL="admin@smartq.com",
+            DJANGO_ADMIN_PASSWORD="Saffron-walnut-9314",
+            DJANGO_ADMIN_RESET_PASSWORD="1",
+        )
+        user = User.objects.get(username="admin")
+        self.assertIn("Reset the password", output)
+        self.assertTrue(user.check_password("Saffron-walnut-9314"))
+        self.assertFalse(user.check_password("the-old-one-42"))
+        self.assertEqual(User.objects.filter(username="admin").count(), 1)
+
+    def test_its_own_email_is_not_treated_as_a_clash(self):
+        User.objects.create_user(
+            username="admin", email="admin@smartq.com", password="the-old-one-42", role=Role.ADMIN
+        )
+        # The account already holds that address; only another account holding
+        # it is a problem.
+        self._run(
+            DJANGO_ADMIN_USERNAME="admin",
+            DJANGO_ADMIN_EMAIL="admin@smartq.com",
+            DJANGO_ADMIN_PASSWORD="Saffron-walnut-9314",
+            DJANGO_ADMIN_RESET_PASSWORD="1",
+        )
+        self.assertTrue(User.objects.get(username="admin").check_password("Saffron-walnut-9314"))
+
+    def test_without_the_flag_an_existing_password_is_untouched(self):
+        User.objects.create_user(
+            username="admin", email="admin@smartq.com", password="the-old-one-42", role=Role.ADMIN
+        )
+        output = self._run(
+            DJANGO_ADMIN_USERNAME="admin",
+            DJANGO_ADMIN_PASSWORD="Saffron-walnut-9314",
+        )
+        self.assertIn("already exists", output)
+        self.assertTrue(User.objects.get(username="admin").check_password("the-old-one-42"))

@@ -126,6 +126,11 @@ python manage.py test
    username or email included. For a demo account where that is the point,
    set `DJANGO_ADMIN_ALLOW_WEAK_PASSWORD=1` and it is accepted with a warning.
 
+   To change the password later on a host with no shell, set the new one in
+   `DJANGO_ADMIN_PASSWORD` and add `DJANGO_ADMIN_RESET_PASSWORD=1` for one
+   deploy, then unset it — otherwise every deploy puts that password back,
+   undoing any change made since.
+
 ## Configuration
 
 Everything lives in `.env`; `.env.example` lists the keys with comments.

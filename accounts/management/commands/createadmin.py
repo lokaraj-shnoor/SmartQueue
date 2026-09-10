@@ -13,6 +13,8 @@ put in a deployment pipeline on a host with no interactive shell.
     DJANGO_ADMIN_EMAIL      optional
     DJANGO_ADMIN_ALLOW_WEAK_PASSWORD  set to 1 to accept a password Django's
                                       validators reject (demo accounts only)
+    DJANGO_ADMIN_RESET_PASSWORD       set to 1 to also reset the password of an
+                                      account that already exists
 
 Remove the password variable once the account exists and you have signed in.
 """
@@ -39,7 +41,14 @@ class Command(BaseCommand):
             )
             return
 
-        if User.objects.filter(username__iexact=username).exists():
+        existing = User.objects.filter(username__iexact=username).first()
+        reset_existing = os.environ.get("DJANGO_ADMIN_RESET_PASSWORD", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if existing and not reset_existing:
             self.stdout.write("Administrator " + username + " already exists - leaving it alone.")
             return
 
@@ -52,11 +61,30 @@ class Command(BaseCommand):
                 + "\n  ".join(problem.messages)
             )
 
-        if email and User.objects.filter(email__iexact=email).exists():
+        clash = User.objects.filter(email__iexact=email)
+        if existing:
+            clash = clash.exclude(pk=existing.pk)
+        if email and clash.exists():
             raise CommandError(
                 "Another account already uses " + email + ". Password resets and Google "
                 "sign-in both match on the address, so it has to be unique."
             )
+
+        if existing:
+            # A shared temporary password has to be changeable on a host with
+            # no shell, which means the deploy hook has to be able to set it.
+            existing.set_password(password)
+            existing.role = Role.ADMIN
+            existing.is_staff = True
+            existing.is_superuser = True
+            existing.save()
+            self.stdout.write(
+                self.style.SUCCESS("Reset the password for " + existing.username + ".")
+            )
+            self.stdout.write(
+                "Unset DJANGO_ADMIN_RESET_PASSWORD, or every deploy resets it again."
+            )
+            return
 
         user = User.objects.create_user(
             username=username,
