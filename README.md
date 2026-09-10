@@ -153,7 +153,7 @@ EMAIL_HOST_PASSWORD=the-SMTP-key
 EMAIL_SENDER=Smart Queue <the-address-you-verified@example.com>
 ```
 
-Then check it, before touching the UI:
+Then check it:
 
 ```bash
 python manage.py mailcheck you@example.com
@@ -161,14 +161,6 @@ python manage.py mailcheck you@example.com
 
 That prints the settings actually in force — never the password — and names the
 fix for the usual failures instead of showing a raw SMTP error.
-
-| Provider   | Free allowance | Two-factor needed? | Username is |
-|------------|----------------|--------------------|-------------|
-| `brevo`    | 300 a day      | no                 | the login on the SMTP page, often a number |
-| `smtp2go`  | 1,000 a month  | no                 | the SMTP user you create |
-| `mailjet`  | 200 a day      | no                 | the API key (password is the secret key) |
-| `resend`   | 3,000 a month  | no                 | literally `resend` (password is the API key) |
-| `gmail`    | ~500 a day     | **yes**            | your Gmail address (password must be an app password) |
 
 Gmail is only workable on an account where you can turn on 2-Step Verification;
 managed work accounts often forbid it, and without 2FA there is no app password
