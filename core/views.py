@@ -3,7 +3,14 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from queues import services as queue_ops
-from queues.models import Counter, CounterStatus, EntryStatus, QueueEntry, Service
+from queues.models import (
+    Counter,
+    CounterStatus,
+    EntryStatus,
+    QueueEntry,
+    Service,
+    waiting_entries,
+)
 
 
 def landing(request):
@@ -13,7 +20,10 @@ def landing(request):
         .annotate(
             waiting=Count(
                 "tokens__entry",
-                filter=Q(tokens__entry__status=EntryStatus.WAITING),
+                filter=Q(
+                    tokens__entry__status=EntryStatus.WAITING,
+                    tokens__issue_date=timezone.localdate(),
+                ),
                 distinct=True,
             )
         )
@@ -31,7 +41,7 @@ def landing(request):
     feature_service = services[0] if services else None
     next_number = feature_service.next_token_number() if feature_service else 1
     serving_counter = next((c for c in counters if c.now_serving), None)
-    waiting_total = QueueEntry.objects.filter(status=EntryStatus.WAITING).count()
+    waiting_total = waiting_entries().count()
     est_wait_minutes = waiting_total * (feature_service.avg_service_minutes if feature_service else 5)
 
     return render(
@@ -69,9 +79,7 @@ def board(request):
             "recent": queue_ops.recently_called(),
             "service_lines": queue_ops.board_service_lines(),
             # today only, so this total and the per-service lines agree
-            "waiting_total": QueueEntry.objects.filter(
-                status=EntryStatus.WAITING, token__issue_date=timezone.localdate()
-            ).count(),
+            "waiting_total": waiting_entries().count(),
             "refresh_seconds": 15,
         },
     )

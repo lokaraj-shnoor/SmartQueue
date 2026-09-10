@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Your queue — Smart Queue{% endblock %}
 
 {% block content %}
-<div class="shell page-wrap">
+<div class="shell page-wrap"{% if entry %} data-token-watch="{% url 'dashboard:token_status' %}" data-token-status="{{ entry.status }}" data-notify-icon="{% static 'favicon.ico' %}"{% endif %}>
   <div class="page__head">
     <h1 class="page__title">Hello, {{ user.display_name }}</h1>
     {% if entry %}
@@ -21,25 +22,25 @@
     {% if entry %}
       <aside class="display" aria-label="Your token">
         <div class="display__head">
-          <span class="display__label">
+          <span class="display__label" data-token-label>
             {% if entry.status == "waiting" %}Your number{% elif entry.status == "called" %}You are being called{% else %}At the counter{% endif %}
           </span>
           <span class="display__live" aria-hidden="true"></span>
         </div>
-        <p class="display__num">{{ entry.token.code }}</p>
+        <p class="display__num" data-token-code>{{ entry.token.code }}</p>
         <p class="display__where">{{ entry.token.service.name }}</p>
         <dl class="display__rows">
           <div class="display__row display__row--mine">
             <dt>Ahead of you</dt>
-            <dd>{{ ahead }}</dd>
+            <dd data-token-ahead>{{ ahead }}</dd>
           </div>
           <div class="display__row">
             <dt>Rough wait</dt>
-            <dd>{% if eta_minutes %}{{ eta_minutes }} min{% else %}Any moment{% endif %}</dd>
+            <dd data-token-eta>{% if eta_minutes %}{{ eta_minutes }} min{% else %}Any moment{% endif %}</dd>
           </div>
           <div class="display__row">
             <dt>Counter</dt>
-            <dd>{% if entry.counter %}{{ entry.counter.code }}{% else %}Not assigned{% endif %}</dd>
+            <dd data-token-counter>{% if entry.counter %}{{ entry.counter.code }}{% else %}Not assigned{% endif %}</dd>
           </div>
         </dl>
         <p class="display__foot">Taken {{ entry.queued_at|time:"H:i" }} &middot; {{ entry.get_status_display }}</p>
@@ -62,6 +63,7 @@
         </ul>
 
         <div class="holder__acts">
+          <button type="button" class="btn btn--small" data-notify-ask hidden>Alert me when I'm called</button>
           <a class="btn btn--ghost btn--small" href="{% url 'dashboard:token_detail' entry.pk %}">Token history</a>
           {% if entry.status == "waiting" %}
             <form method="post" action="{% url 'dashboard:token_cancel' entry.pk %}" class="inline-form">
@@ -75,8 +77,9 @@
 
         <p class="soon">
           <strong>Keep this page open</strong>
-          Reload to see your place move. The counter staff call numbers in the
-          order shown here, priority cases first.
+          Your place updates on its own. Turn on alerts and your phone will
+          tell you the moment your number is called, even if you are looking
+          at something else.
         </p>
       </div>
     {% else %}

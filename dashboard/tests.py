@@ -903,3 +903,106 @@ class CreateAdminCommandTests(TestCase):
                 DJANGO_ADMIN_EMAIL="shared@example.edu",
             )
         self.assertFalse(User.objects.filter(username="asha").exists())
+
+
+class TokenStatusEndpointTests(TestCase):
+    """The endpoint the visitor's page polls, and the flag it notifies on."""
+
+    def setUp(self):
+        self.service = Service.objects.create(name="Fee payment", code="FEE")
+        self.staff = User.objects.create_user(
+            username="meera", password="counter-queue-42", role=Role.STAFF
+        )
+        self.counter = Counter.objects.create(
+            name="Front desk", code="C1", status=CounterStatus.OPEN, assigned_staff=self.staff
+        )
+        self.counter.services.add(self.service)
+        self.visitor = User.objects.create_user(
+            username="riya", password="counter-queue-42", role=Role.VISITOR
+        )
+        self.client.force_login(self.visitor)
+
+    def test_it_says_nothing_is_held_when_nothing_is(self):
+        body = self.client.get(reverse("dashboard:token_status")).json()
+        self.assertEqual(body, {"holding": False})
+
+    def test_waiting_reports_the_place_in_line_and_does_not_call(self):
+        queue_ops.issue_token(self.service, user=self.visitor)
+        body = self.client.get(reverse("dashboard:token_status")).json()
+        self.assertTrue(body["holding"])
+        self.assertEqual(body["code"], "FEE-001")
+        self.assertEqual(body["status"], EntryStatus.WAITING)
+        self.assertFalse(body["is_up"])
+
+    def test_being_called_raises_the_flag_with_the_counter(self):
+        queue_ops.issue_token(self.service, user=self.visitor)
+        queue_ops.call_next(self.counter, self.staff)
+
+        body = self.client.get(reverse("dashboard:token_status")).json()
+        self.assertTrue(body["is_up"])
+        self.assertEqual(body["counter"], "C1")
+        self.assertEqual(body["counter_name"], "Front desk")
+
+    def test_the_flag_stays_up_while_being_served(self):
+        entry = queue_ops.issue_token(self.service, user=self.visitor)
+        queue_ops.call_next(self.counter, self.staff)
+        entry.refresh_from_db()
+        queue_ops.start_serving(entry, self.staff)
+
+        self.assertTrue(self.client.get(reverse("dashboard:token_status")).json()["is_up"])
+
+    def test_it_never_reports_somebody_elses_token(self):
+        other = User.objects.create_user(
+            username="sam", password="counter-queue-42", role=Role.VISITOR
+        )
+        queue_ops.issue_token(self.service, user=other)
+        body = self.client.get(reverse("dashboard:token_status")).json()
+        self.assertEqual(body, {"holding": False})
+
+    def test_signed_out_visitors_are_sent_to_the_sign_in_page(self):
+        self.client.logout()
+        response = self.client.get(reverse("dashboard:token_status"))
+        self.assertEqual(response.status_code, 302)
+
+
+class WaitingCountsTests(TestCase):
+    """Waiting figures count today's queue, not tokens stranded on old days."""
+
+    def setUp(self):
+        self.service = Service.objects.create(name="Fee payment", code="FEE")
+        self.counter = Counter.objects.create(
+            name="Front desk", code="C1", status=CounterStatus.OPEN
+        )
+        self.counter.services.add(self.service)
+        self.visitor = User.objects.create_user(
+            username="riya", password="counter-queue-42", role=Role.VISITOR
+        )
+        # Left waiting when the counters closed on an earlier day: the call
+        # desk only pulls from today, so it can never be called again.
+        stranded = Token.objects.create(
+            service=self.service,
+            number=99,
+            issue_date=timezone.localdate() - timedelta(days=1),
+        )
+        QueueEntry.objects.create(token=stranded, status=EntryStatus.WAITING)
+
+    def test_service_and_counter_counts_ignore_earlier_days(self):
+        self.assertEqual(self.service.waiting_count, 0)
+        self.assertEqual(self.counter.waiting_count, 0)
+
+        queue_ops.issue_token(self.service, user=self.visitor)
+        self.assertEqual(self.service.waiting_count, 1)
+        self.assertEqual(self.counter.waiting_count, 1)
+
+    def test_the_landing_page_does_not_advertise_a_queue_nobody_is_in(self):
+        response = self.client.get(reverse("core:landing"))
+        self.assertEqual(response.context["waiting_total"], 0)
+        self.assertEqual(response.context["services"][0].waiting, 0)
+
+    def test_the_admin_dashboard_agrees(self):
+        admin = User.objects.create_user(
+            username="asha", password="counter-queue-42", role=Role.ADMIN
+        )
+        self.client.force_login(admin)
+        response = self.client.get(reverse("dashboard:admin_home"))
+        self.assertEqual(response.context["waiting_total"], 0)

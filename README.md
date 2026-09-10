@@ -11,7 +11,9 @@ two small scripts do the whole client side.
 ## What it does
 
 **Visitor** — take a token for any open service, see the number, how many people
-are ahead, and a rough wait; give up a place; read the history of a token.
+are ahead, and a rough wait; give up a place; read the history of a token. The
+page keeps itself current and, with permission, raises a browser notification
+the moment the number is called, so nobody has to watch the screen.
 
 **Counter staff** — a console per counter: call next, call again, mark someone
 as arrived, finish, or mark a no-show; put a skipped number back in line; open,
@@ -120,6 +122,10 @@ python manage.py test
    alone, and does nothing when the variables are unset, so it is safe on every
    deploy. Remove the password variable once you have signed in.
 
+   Django refuses a password its validators reject — one too close to the
+   username or email included. For a demo account where that is the point,
+   set `DJANGO_ADMIN_ALLOW_WEAK_PASSWORD=1` and it is accepted with a warning.
+
 ## Configuration
 
 Everything lives in `.env`; `.env.example` lists the keys with comments.
@@ -195,6 +201,19 @@ matched on the verified Google email, so someone an administrator made staff
 keeps that role when they use the button; an unrecognised email becomes a new
 visitor account with no password, which can be given one through the forgotten
 password flow.
+
+### Being told your turn
+
+The visitor's page polls `me/status/` every 10 seconds while it is open (30 in a
+background tab) and raises a browser notification the first time the token turns
+up at a counter. Permission is asked for by a button on the page, never on load,
+and everything still works when it is refused: the panel brightens, the tab
+title changes, and the figures keep updating.
+
+It is a poll, not web push. Push needs a service worker, VAPID keys and a
+subscription stored per device, and still cannot reach a phone whose browser has
+been swiped away — a poll is honest about working while the page is open, which
+is how somebody actually waits in a room.
 
 ## Layout
 

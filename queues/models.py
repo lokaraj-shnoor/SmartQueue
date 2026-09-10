@@ -42,6 +42,19 @@ class EventType(models.TextChoices):
     TRANSFERRED = "transferred", "Moved to another counter"
 
 
+def waiting_entries(on_date=None):
+    """Everyone still waiting on a given day, today by default.
+
+    Numbering restarts daily and the call desk only ever pulls from today, so
+    an entry left waiting when the counters closed can never be called again.
+    Counting those would tell the room a queue exists that nobody is in, so
+    every "waiting" figure in the product goes through here.
+    """
+    return QueueEntry.objects.filter(
+        status=EntryStatus.WAITING, token__issue_date=on_date or timezone.localdate()
+    )
+
+
 class SystemSettings(models.Model):
     """One row. Site-wide switches an administrator can flip."""
 
@@ -111,9 +124,7 @@ class Service(models.Model):
 
     @property
     def waiting_count(self):
-        return QueueEntry.objects.filter(
-            token__service=self, status=EntryStatus.WAITING
-        ).count()
+        return waiting_entries().filter(token__service=self).count()
 
     @property
     def counter_count(self):
@@ -171,9 +182,7 @@ class Counter(models.Model):
 
     @property
     def waiting_count(self):
-        return QueueEntry.objects.filter(
-            token__service__in=self.services.all(), status=EntryStatus.WAITING
-        ).count()
+        return waiting_entries().filter(token__service__in=self.services.all()).count()
 
 
 class Token(models.Model):

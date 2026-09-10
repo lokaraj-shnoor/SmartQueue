@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Prefetch, Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,6 +16,7 @@ from accounts.models import Role, User
 from dashboard.forms import CounterForm, ServiceForm, SystemSettingsForm
 from queues import reports, services as queue_ops
 from queues.models import (
+    waiting_entries,
     Counter,
     CounterStatus,
     EntryStatus,
@@ -52,7 +53,10 @@ def _service_list():
     return Service.objects.annotate(
         waiting=Count(
             "tokens__entry",
-            filter=Q(tokens__entry__status=EntryStatus.WAITING),
+            filter=Q(
+                tokens__entry__status=EntryStatus.WAITING,
+                tokens__issue_date=timezone.localdate(),
+            ),
             distinct=True,
         ),
         counters_total=Count("counters", filter=Q(counters__is_active=True), distinct=True),
@@ -77,7 +81,7 @@ def admin_home(request):
             "open_count": sum(1 for c in counters if c.status == CounterStatus.OPEN),
             "paused_count": sum(1 for c in counters if c.status == CounterStatus.PAUSED),
             "closed_count": sum(1 for c in counters if c.status == CounterStatus.CLOSED),
-            "waiting_total": QueueEntry.objects.filter(status=EntryStatus.WAITING).count(),
+            "waiting_total": waiting_entries().count(),
             "staff_total": User.objects.filter(role=Role.STAFF, is_active=True).count(),
         },
     )
@@ -495,6 +499,38 @@ def visitor_home(request):
             "services": services,
             "history": history,
         },
+    )
+
+
+@login_required
+def token_status(request):
+    """What the visitor's page polls: their token, and whether it is up.
+
+    Small and cheap on purpose — this is hit every few seconds by every phone
+    in the waiting room, so it answers with the few fields the page redraws
+    and nothing else.
+    """
+    entry = queue_ops.open_entry_for(request.user)
+    if entry is None:
+        return JsonResponse({"holding": False})
+
+    ahead = queue_ops.people_ahead(entry)
+    return JsonResponse(
+        {
+            "holding": True,
+            "entry_id": entry.pk,
+            "code": entry.token.code,
+            "status": entry.status,
+            "status_label": entry.get_status_display(),
+            "service": entry.token.service.name,
+            "counter": entry.counter.code if entry.counter else "",
+            "counter_name": entry.counter.name if entry.counter else "",
+            "ahead": ahead,
+            "eta_minutes": queue_ops.estimated_minutes(entry, ahead),
+            # The page notifies when this flips, so it is the whole point of
+            # the endpoint: called or serving means go to the counter.
+            "is_up": entry.status in (EntryStatus.CALLED, EntryStatus.SERVING),
+        }
     )
 
 

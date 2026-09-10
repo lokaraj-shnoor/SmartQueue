@@ -11,6 +11,8 @@ put in a deployment pipeline on a host with no interactive shell.
     DJANGO_ADMIN_USERNAME   required to do anything
     DJANGO_ADMIN_PASSWORD   required to do anything
     DJANGO_ADMIN_EMAIL      optional
+    DJANGO_ADMIN_ALLOW_WEAK_PASSWORD  set to 1 to accept a password Django's
+                                      validators reject (demo accounts only)
 
 Remove the password variable once the account exists and you have signed in.
 """

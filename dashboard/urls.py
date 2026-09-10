@@ -28,6 +28,7 @@ urlpatterns = [
     path("staff/entry/<int:pk>/skip/", views.entry_skip, name="entry_skip"),
     path("staff/entry/<int:pk>/requeue/", views.entry_requeue, name="entry_requeue"),
     path("me/", views.visitor_home, name="visitor_home"),
+    path("me/status/", views.token_status, name="token_status"),
     path("me/take/<int:pk>/", views.token_take, name="token_take"),
     path("me/token/<int:pk>/", views.token_detail, name="token_detail"),
     path("me/token/<int:pk>/cancel/", views.token_cancel, name="token_cancel"),
